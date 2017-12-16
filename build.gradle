@@ -26,9 +26,11 @@ dependencies {
     compile 'org.apache.commons:commons-lang3:3.6'
     compile 'org.apache.mahout:mahout-math:0.13.0'
     compile 'commons-io:commons-io:2.6'
+    compile 'log4j:log4j:1.2.17'
 
     // Use JUnit test framework
     testCompile 'junit:junit:4.12'
+
 }
 
 // Define the main class for the application
