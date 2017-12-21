@@ -44,7 +44,7 @@ public class PageRankTest {
         matrix.set(10, 4, 1d);
 
         Vector v = new PageRank(matrix).dumpingFactor(0.85).calculateRanks();
-        LOGGER.debug("Final:" + VectorPrintUtil.toString(v));
+        LOGGER.info("Final:" + VectorPrintUtil.toString(v));
 
     }
 

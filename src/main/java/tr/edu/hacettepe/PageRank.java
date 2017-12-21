@@ -3,6 +3,7 @@ package tr.edu.hacettepe;
 import org.apache.log4j.Logger;
 import org.apache.mahout.math.DenseVector;
 import org.apache.mahout.math.Matrix;
+import org.apache.mahout.math.MatrixSlice;
 import org.apache.mahout.math.Vector;
 import tr.edu.hacettepe.structure.Graph;
 import tr.edu.hacettepe.util.VectorPrintUtil;
@@ -36,6 +37,13 @@ public class PageRank {
     public PageRank(Matrix similarities) {
         this.similarities = similarities;
         this.cardinality = similarities.columnSize();
+
+        // make stochastic
+        for (MatrixSlice row : similarities) {
+            if (!row.nonZeroes().iterator().hasNext()) {
+                row.assign(1.0);
+            }
+        }
     }
 
 
@@ -43,9 +51,13 @@ public class PageRank {
 
 
         double[] r = new double[cardinality];
-        Arrays.fill(r, 1.0 / cardinality);
+        double v = 1.0 / cardinality;
+//        double v = Math.round((1.0 / cardinality) * 100.0) / 100.0;
+        double dTerm = (1 - dumpingFactor) * v;
+        Arrays.fill(r, v);
 
         Vector ranks = new DenseVector(r);
+        Vector e = new DenseVector(r);
         Vector newRanks;
 
         LOGGER.debug(String.format("P%d: %s", 0, VectorPrintUtil.toString(ranks)));
@@ -53,7 +65,7 @@ public class PageRank {
         int k = 1;
         while (true) {
             // next = (1-d)*e + d*A^T*first
-            newRanks = iteration(ranks, dumpingFactor);
+            newRanks = iteration(ranks, dumpingFactor, dTerm);
             LOGGER.debug(String.format("P%d: %s", k, VectorPrintUtil.toString(newRanks)));
 
             //test for convergence
@@ -67,9 +79,7 @@ public class PageRank {
         return newRanks;
     }
 
-    private Vector iteration(Vector ranks, double d) {
-
-        double dTerm = (1 - d) / cardinality;
+    private Vector iteration(Vector ranks, double d, double dTerm) {
 
         Vector newRanks = new DenseVector(cardinality);
         for (int i = 0; i < cardinality; i++) {
@@ -85,9 +95,13 @@ public class PageRank {
         double sum = 0.0;
 
         for (Vector.Element in : similarities.viewColumn(i).nonZeroes()) {
+            if (in.index() == i) {
+                continue;
+            }
             double outLinksFrom = similarities.viewRow(in.index()).zSum();
             if (outLinksFrom > 0.0) {
-                sum += ranks.get(in.index()) / outLinksFrom;
+//                sum += ranks.get(in.index()) / outLinksFrom;
+                sum += (similarities.get(in.index(), i) / outLinksFrom) * ranks.get(in.index());
             }
         }
         return sum;

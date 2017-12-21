@@ -2,9 +2,14 @@ package tr.edu.hacettepe.structure;
 
 import org.apache.log4j.Logger;
 import org.apache.mahout.math.Matrix;
+import org.apache.mahout.math.MatrixSlice;
 import org.apache.mahout.math.SparseRowMatrix;
 
-import java.util.List;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author Memn
@@ -15,28 +20,15 @@ public class Graph {
 
     private final static Logger LOGGER = Logger.getLogger(Graph.class);
 
-    // int values are their id
-    private final String[] nodes;
     private Matrix adjacency;
 
-    Graph(List<String> sentences) {
+    private Graph(int size) {
 
-        adjacency = new SparseRowMatrix(sentences.size(), sentences.size());
-        nodes = new String[sentences.size()];
-
-        int id = 0;
-        for (String t : sentences) {
-            addNode(t, id++);
-        }
+        adjacency = new SparseRowMatrix(size, size);
 
     }
 
-    private void addNode(String node, int id) {
-        LOGGER.debug(String.format("Adding node with id: %d", id));
-        nodes[id] = node;
-    }
-
-    public void addEdge(int source, int target, double weight) {
+    void addEdge(int source, int target, double weight) {
         LOGGER.debug(String.format("Adding edge between %d - %d with weight %.3f", source, target, weight));
         adjacency.set(source, target, weight);
     }
@@ -45,4 +37,43 @@ public class Graph {
         return adjacency;
     }
 
+    public static class Builder {
+
+        private final static Logger LOGGER = Logger.getLogger(Builder.class);
+
+        private static final int DEFAULT_NUM_NEIGHBORS = 20;
+        private int numNeighbors = -1;
+
+        public Graph build(Matrix weights, int size) {
+            Graph graph = new Graph(size);
+            LOGGER.debug("Graph is created, adding edges....");
+
+            for (MatrixSlice row : weights) {
+                nearest(row).forEach((i, w) -> graph.addEdge(row.index(), i, w));
+            }
+
+            return graph;
+        }
+
+        private Map<Integer, Double> nearest(MatrixSlice row) {
+            Map<Integer, Double> map = new HashMap<>(row.size());
+            row.all().forEach(element -> map.put(element.index(), element.get()));
+            return map.entrySet().stream()
+                    .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                    .limit(getNumNeighbors())
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                            (oldValue, newValue) -> oldValue, LinkedHashMap::new));
+        }
+
+        private int getNumNeighbors() {
+            return numNeighbors == -1 ? DEFAULT_NUM_NEIGHBORS : numNeighbors;
+        }
+
+        public Builder numNeighbors(int numNeighbors) {
+            if (numNeighbors > 0) {
+                this.numNeighbors = numNeighbors;
+            }
+            return this;
+        }
+    }
 }

@@ -15,7 +15,10 @@ import java.util.List;
  * @date 13.12.2017
  */
 
-public class MatrixBuilder {
+public class File2MatrixBuilder {
+
+    private static final char SEPARATOR_CHAR = ',';
+
     /**
      * Assumes file is a matrix file. If can't read file throws {@link IOException}.
      * <p>
@@ -51,6 +54,6 @@ public class MatrixBuilder {
     }
 
     private static double[] row2Data(String row) {
-        return Arrays.stream(StringUtils.split(row, ',')).mapToDouble(Double::parseDouble).toArray();
+        return Arrays.stream(StringUtils.split(row, SEPARATOR_CHAR)).mapToDouble(Double::parseDouble).toArray();
     }
 }
