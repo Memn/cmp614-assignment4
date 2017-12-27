@@ -8,8 +8,6 @@ import org.apache.mahout.math.Vector;
 import tr.edu.hacettepe.structure.Graph;
 import tr.edu.hacettepe.util.VectorPrintUtil;
 
-import java.util.Arrays;
-
 /**
  * @author Memn
  * @date 13.12.2017
@@ -20,111 +18,70 @@ public class PageRank {
 
 
     private static final double LP_SPACE = 1.0;
+    private static final int MAX_ITERATIONS = 1000;
+    private static final double EPSILON = 0.0001;
 
-    private final int cardinality;    // number of nodes
-    private Matrix similarities;
-
+    private final Vector eigen;
+    private Vector eTimesOneMinusDumpFactor;
+    private Matrix transposedTimesDumpFactor;
     // optionals
-    private int maxIterations = 100;
-    private double EPSILON = 0.001;
-    private double dumpingFactor = 0.85d;
+    private String docset;
 
-
-    public PageRank(Graph graph) {
-        this(graph.getAdjacency());
+    public PageRank(Graph graph, double dumpingFactor) {
+        this(graph.getAdjacency(), dumpingFactor, graph.getDocset());
     }
 
-    public PageRank(Matrix similarities) {
-        this.similarities = similarities;
-        this.cardinality = similarities.columnSize();
-
+    PageRank(Matrix similarities, double dumpingFactor, String docset) {
         // make stochastic
         for (MatrixSlice row : similarities) {
+            // zero row
             if (!row.nonZeroes().iterator().hasNext()) {
                 row.assign(1.0);
             }
+            row.assign(row.normalize(1.0));
         }
-    }
 
+        eigen = new DenseVector(similarities.columnSize());
+        double e = 1.0 / similarities.columnSize();
+        eigen.assign(e);
+        this.docset = docset;
+
+        this.transposedTimesDumpFactor = similarities.transpose().times(dumpingFactor);
+        this.eTimesOneMinusDumpFactor = eigen.times(1.0 - dumpingFactor);
+    }
 
     public Vector calculateRanks() {
 
-
-        double[] r = new double[cardinality];
-        double v = 1.0 / cardinality;
-//        double v = Math.round((1.0 / cardinality) * 100.0) / 100.0;
-        double dTerm = (1 - dumpingFactor) * v;
-        Arrays.fill(r, v);
-
-        Vector ranks = new DenseVector(r);
-        Vector e = new DenseVector(r);
+        Vector ranks = new DenseVector(eigen);
         Vector newRanks;
 
         LOGGER.debug(String.format("P%d: %s", 0, VectorPrintUtil.toString(ranks)));
-
+        double prevNorm = Double.MAX_VALUE;
         int k = 1;
         while (true) {
             // next = (1-d)*e + d*A^T*first
-            newRanks = iteration(ranks, dumpingFactor, dTerm);
+            newRanks = iteration2(ranks);
             LOGGER.debug(String.format("P%d: %s", k, VectorPrintUtil.toString(newRanks)));
 
+            double norm = newRanks.minus(ranks).norm(LP_SPACE);
+
+            if (norm > prevNorm) {
+                LOGGER.error("NORM is increased...");
+            }
+
             //test for convergence
-            if (Math.abs(newRanks.minus(ranks).norm(LP_SPACE)) < EPSILON || ++k > maxIterations) {
+            if (Math.abs(norm) < EPSILON || ++k > MAX_ITERATIONS) {
                 break;
             }
-
-            ranks = new DenseVector(newRanks);
+            prevNorm = norm;
+            ranks.assign(newRanks);
         }
-
+        LOGGER.info(String.format("Ranks for %s after iteration %d: %s", docset, k, VectorPrintUtil.toString(newRanks, 5)));
         return newRanks;
     }
 
-    private Vector iteration(Vector ranks, double d, double dTerm) {
-
-        Vector newRanks = new DenseVector(cardinality);
-        for (int i = 0; i < cardinality; i++) {
-
-            double newRank = dTerm + (d * sum(ranks, i));
-            newRanks.set(i, newRank);
-        }
-
-        return newRanks;
+    private Vector iteration2(Vector ranks) {
+        return eTimesOneMinusDumpFactor.plus(transposedTimesDumpFactor.times(ranks));
     }
 
-    private double sum(Vector ranks, int i) {
-        double sum = 0.0;
-
-        for (Vector.Element in : similarities.viewColumn(i).nonZeroes()) {
-            if (in.index() == i) {
-                continue;
-            }
-            double outLinksFrom = similarities.viewRow(in.index()).zSum();
-            if (outLinksFrom > 0.0) {
-//                sum += ranks.get(in.index()) / outLinksFrom;
-                sum += (similarities.get(in.index(), i) / outLinksFrom) * ranks.get(in.index());
-            }
-        }
-        return sum;
-    }
-
-    public PageRank dumpingFactor(double d) {
-        if (d > 0) {
-            this.dumpingFactor = d;
-        }
-        return this;
-    }
-
-    public PageRank epsilon(double e) {
-        if (e > 0) {
-            this.EPSILON = e;
-        }
-        return this;
-    }
-
-    public PageRank maxIterations(int i) {
-        if (i > 0) {
-            this.maxIterations = i;
-        }
-        return this;
-    }
 }

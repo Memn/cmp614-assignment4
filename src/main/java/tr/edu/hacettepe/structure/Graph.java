@@ -4,7 +4,10 @@ import org.apache.log4j.Logger;
 import org.apache.mahout.math.Matrix;
 import org.apache.mahout.math.MatrixSlice;
 import org.apache.mahout.math.SparseRowMatrix;
+import tr.edu.hacettepe.util.File2MatrixBuilder;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -21,11 +24,13 @@ public class Graph {
     private final static Logger LOGGER = Logger.getLogger(Graph.class);
 
     private Matrix adjacency;
+    private final String docset;
 
-    private Graph(int size) {
+    private Graph(int size, String docset) {
 
         adjacency = new SparseRowMatrix(size, size);
 
+        this.docset = docset;
     }
 
     void addEdge(int source, int target, double weight) {
@@ -37,6 +42,10 @@ public class Graph {
         return adjacency;
     }
 
+    public String getDocset() {
+        return docset;
+    }
+
     public static class Builder {
 
         private final static Logger LOGGER = Logger.getLogger(Builder.class);
@@ -44,12 +53,15 @@ public class Graph {
         private static final int DEFAULT_NUM_NEIGHBORS = 20;
         private int numNeighbors = -1;
 
-        public Graph build(Matrix weights, int size) {
-            Graph graph = new Graph(size);
+        public Graph build(Path sims, int size) throws IOException {
+
+            Matrix weights = File2MatrixBuilder.build(sims, size);
+            Graph graph = new Graph(size, sims.getParent().toFile().getName());
             LOGGER.debug("Graph is created, adding edges....");
 
             for (MatrixSlice row : weights) {
-                nearest(row).forEach((i, w) -> graph.addEdge(row.index(), i, w));
+                Map<Integer, Double> nearest = nearest(row);
+                nearest.forEach((i, w) -> graph.addEdge(row.index(), i, w));
             }
 
             return graph;

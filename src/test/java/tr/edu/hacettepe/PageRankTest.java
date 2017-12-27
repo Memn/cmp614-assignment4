@@ -43,8 +43,8 @@ public class PageRankTest {
         matrix.set(10, 1, 1d);
         matrix.set(10, 4, 1d);
 
-        Vector v = new PageRank(matrix).dumpingFactor(0.85).calculateRanks();
-        LOGGER.info("Final:" + VectorPrintUtil.toString(v));
+        Vector v = new PageRank(matrix, 0.85, "").calculateRanks();
+        LOGGER.info("Final:" + VectorPrintUtil.toString(v.normalize(1.0)));
 
     }
 
