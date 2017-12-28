@@ -55,13 +55,13 @@ public class PageRank {
         Vector ranks = new DenseVector(eigen);
         Vector newRanks;
 
-        LOGGER.debug(String.format("P%d: %s", 0, VectorPrintUtil.toString(ranks)));
+        LOGGER.trace(String.format("P%d: %s", 0, VectorPrintUtil.toString(ranks)));
         double prevNorm = Double.MAX_VALUE;
         int k = 1;
         while (true) {
             // next = (1-d)*e + d*A^T*first
             newRanks = iteration2(ranks);
-            LOGGER.debug(String.format("P%d: %s", k, VectorPrintUtil.toString(newRanks)));
+            LOGGER.trace(String.format("P%d: %s", k, VectorPrintUtil.toString(newRanks)));
 
             double norm = newRanks.minus(ranks).norm(LP_SPACE);
 
