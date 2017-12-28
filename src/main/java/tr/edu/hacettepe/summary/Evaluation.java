@@ -76,12 +76,7 @@ public class Evaluation {
 
     @Override
     public String toString() {
-        return "Evaluation{" +
-                "docset='" + docset + selector + summarizer + '\'' +
-                ", size=" + size +
-                ", recall=" + recall() +
-                ", precision=" + precision() +
-                '}';
+        return String.format("Evaluation{docset='%s%s%s', size=%d, recall=%.4f, precision=%.4f}", docset, selector, summarizer, size, recall(), precision());
     }
 
     public double recall() {
