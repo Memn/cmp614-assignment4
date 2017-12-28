@@ -83,6 +83,8 @@ public class App {
                 }
 
             }
+
+            LOGGER.info("");
             LOGGER.info("#####################################################");
             double recall = totalTruePositives / totalManualSummaryCounts;
             double precision = totalTruePositives / totalSummaryCounts;
