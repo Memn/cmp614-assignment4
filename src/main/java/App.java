@@ -48,6 +48,11 @@ public class App {
         double totalManualSummaryCounts = 0;
         double totalSummaryCounts = 0;
 
+        double maxRecall = Double.NEGATIVE_INFINITY;
+        Evaluation maxRecallEvaluation = null;
+        double maxPrecision = Double.NEGATIVE_INFINITY;
+        Evaluation maxPrecisionEvaluation = null;
+
         try {
             SummaryEvaluator summaryEvaluator = new SummaryEvaluator(extractsPath);
             for (Path innerDataFolder : Files.newDirectoryStream(Paths.get(BASE_PATH, DATA_NAME))) {
@@ -64,15 +69,33 @@ public class App {
 
                 for (Evaluation evaluation : evaluate) {
                     LOGGER.info(evaluation.toString());
+                    if (maxPrecision <= evaluation.precision()) {
+                        maxPrecision = evaluation.precision();
+                        maxPrecisionEvaluation = evaluation;
+                    }
+                    if (maxRecall < evaluation.recall()) {
+                        maxRecall = evaluation.recall();
+                        maxRecallEvaluation = evaluation;
+                    }
                     totalTruePositives += evaluation.truePositives();
                     totalSummaryCounts += evaluation.summaryCounts();
                     totalManualSummaryCounts += evaluation.manualSummaryCounts();
                 }
 
             }
+            LOGGER.info("#####################################################");
             double recall = totalTruePositives / totalManualSummaryCounts;
             double precision = totalTruePositives / totalSummaryCounts;
             LOGGER.info(String.format("Overall measures: Recall:%.4f,\tPrecision:%.4f", recall, precision));
+            LOGGER.info("#####################################################");
+            LOGGER.info("");
+            LOGGER.info("#####################################################");
+            assert maxPrecisionEvaluation != null;
+            assert maxRecallEvaluation != null;
+            LOGGER.info("Max measures:");
+            LOGGER.info(String.format("Recall:%s", maxRecallEvaluation.toString()));
+            LOGGER.info(String.format("Precision:%s", maxPrecisionEvaluation.toString()));
+            LOGGER.info("#####################################################");
 
         } catch (IOException e) {
             e.printStackTrace();
