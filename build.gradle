@@ -34,6 +34,15 @@ dependencies {
 
 }
 
+run {
+    doFirst{
+        delete 'results.txt'
+    }
+    if(System.getProperty("exec.args") != null) {
+        args System.getProperty("exec.args").split()
+    }
+}
+
 // Define the main class for the application
 mainClassName = 'App'
 
