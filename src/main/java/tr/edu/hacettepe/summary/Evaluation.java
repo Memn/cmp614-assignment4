@@ -17,7 +17,10 @@ public class Evaluation {
     private final char summarizer;
     private final char selector;
 
-    private double recall;
+    private double truePositives = 0;
+    private double manualSummaryCounts = 0;
+    private double summaryCounts = 0;
+
 
     Evaluation(File file, Summary summary) throws IOException {
         this.size = summary.getSize();
@@ -25,24 +28,18 @@ public class Evaluation {
         this.selector = summary.getSelector();
         this.summarizer = file.getParentFile().getName().charAt(file.getParentFile().getName().length() - 1);
         Summary manual = new Summary(summary, file, summarizer);
-        calculateRecall(manual, summary);
-
+        summaryCounts = summary.getSummary().size();
+        manualSummaryCounts = manual.getSummary().size();
+        measure(manual, summary);
     }
 
-    private void calculateRecall(Summary manual, Summary summary) {
+    private void measure(Summary manual, Summary summary) {
         Set<String> manualSummary = manual.getSummary();
-        double exist = 0;
         for (String sentence : summary.getSummary()) {
             if (manualSummary.contains(sentence.trim())) {
-                exist++;
+                truePositives++;
             }
         }
-        this.recall = exist / manualSummary.size();
-
-    }
-
-    public double getRecall() {
-        return recall;
     }
 
     @Override
@@ -82,8 +79,28 @@ public class Evaluation {
         return "Evaluation{" +
                 "docset='" + docset + selector + summarizer + '\'' +
                 ", size=" + size +
-                ", recall=" + recall +
+                ", recall=" + recall() +
+                ", precision=" + precision() +
                 '}';
     }
 
+    public double recall() {
+        return truePositives / manualSummaryCounts;
+    }
+
+    public double precision() {
+        return truePositives / summaryCounts;
+    }
+
+    public double truePositives() {
+        return truePositives;
+    }
+
+    public double summaryCounts() {
+        return summaryCounts;
+    }
+
+    public double manualSummaryCounts() {
+        return manualSummaryCounts;
+    }
 }
