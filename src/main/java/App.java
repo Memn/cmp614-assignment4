@@ -22,18 +22,35 @@ import java.util.Set;
 public class App {
 
     private final static Logger LOGGER = Logger.getLogger(App.class);
-    private static final String DATA_PATH = "C:\\Users\\MehmetEminMumcu\\Desktop\\memn\\hacettepe\\cmp614\\assignments\\assignment4\\cmp614-assignment4\\src\\main\\resources\\data";
-    private static final String EXTRACTS_PATH = "C:\\Users\\MehmetEminMumcu\\Desktop\\memn\\hacettepe\\cmp614\\assignments\\assignment4\\cmp614-assignment4\\src\\main\\resources\\extracts";
+
     private static final String SENTENCES_FILENAME = "sents.txt";
     private static final String SIMILARITIES_FILENAME = "sims.mat";
+    private static final String DATA_NAME = "data";
+    private static final String EXTRACTS_NAME = "extracts";
 
     public static void main(String[] args) {
 
-        Path extractsPath = Paths.get(EXTRACTS_PATH);
+        if (args.length != 1) {
+            LOGGER.error("You should pass the file path of dataset file!\n" +
+                    "Ex: gradle run -D exec.args=\"DataAndExtractsFolderParentPath\"\n");
+            return;
+        }
+
+        String BASE_PATH = args[0];
+
+        new App().summaryMetrics(BASE_PATH);
+    }
+
+    private void summaryMetrics(String BASE_PATH) {
+        Path extractsPath = Paths.get(BASE_PATH, EXTRACTS_NAME);
+
+        double totalTruePositives = 0;
+        double totalManualSummaryCounts = 0;
+        double totalSummaryCounts = 0;
 
         try {
             SummaryEvaluator summaryEvaluator = new SummaryEvaluator(extractsPath);
-            for (Path innerDataFolder : Files.newDirectoryStream(Paths.get(DATA_PATH))) {
+            for (Path innerDataFolder : Files.newDirectoryStream(Paths.get(BASE_PATH, DATA_NAME))) {
                 // article's folder
                 // we need sents.txt and sims.mat files
                 List<String> sentences = FileUtil.readAllLinesInFolder(innerDataFolder, SENTENCES_FILENAME);
@@ -44,12 +61,21 @@ public class App {
 
                 LinkedHashSet<Integer> marginalOrder = new MMR(ranks, graph.getAdjacency()).marginalOrder();
                 Set<Evaluation> evaluate = summaryEvaluator.evaluate(new Summarizer(innerDataFolder, marginalOrder, sentences));
-                evaluate.forEach(evaluation -> LOGGER.info(evaluation.toString()));
+
+                for (Evaluation evaluation : evaluate) {
+                    LOGGER.info(evaluation.toString());
+                    totalTruePositives += evaluation.truePositives();
+                    totalSummaryCounts += evaluation.summaryCounts();
+                    totalManualSummaryCounts += evaluation.manualSummaryCounts();
+                }
+
             }
+            double recall = totalTruePositives / totalManualSummaryCounts;
+            double precision = totalTruePositives / totalSummaryCounts;
+            LOGGER.info(String.format("Overall measures: Recall:%.4f,\tPrecision:%.4f", recall, precision));
+
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
     }
 }
