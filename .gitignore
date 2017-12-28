@@ -36,6 +36,10 @@ gen### Gradle template
 /build/
 /src/main/resources/data
 /src/main/resources/extracts
+results.txt
+temp.txt
+.classpath
+.project
 
 
 
